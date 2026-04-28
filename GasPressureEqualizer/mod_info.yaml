@@ -1,7 +1,4 @@
-title: Gas Pressure Equalizer
-description: Gas balancing vent system
-staticID: GasPressureEqualizer
-version: 1.0.0
 supportedContent: VANILLA_ID,EXPANSION1_ID
 minimumSupportedBuild: 722606
+version: 1.0.0
 APIVersion: 2

@@ -36,6 +36,10 @@
 			  DestinationFolder="$(ONIModPath)"
 			  SkipUnchangedFiles="true" />
 
+		<Copy SourceFiles="$(ProjectDir)mod.yaml"
+			  DestinationFolder="$(ONIModPath)"
+			  SkipUnchangedFiles="true" />
+
 	</Target>
 
 	<!-- ===================== -->
