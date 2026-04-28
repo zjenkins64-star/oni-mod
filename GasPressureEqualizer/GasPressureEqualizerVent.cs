@@ -78,6 +78,24 @@ namespace GasPressureEqualizer
             SimMessages.AddRemoveSubstance(target.Cell, roomElement.id, null,
                 transfer, temp, diseaseIdx, diseaseTransfer, true, -1);
 
+            // Only the global-maximum vent in this network drives the duct flow
+            // animation. With cell-index tiebreaker so multiple max-mass vents
+            // don't all overwrite each other.
+            bool iAmGlobalMax = true;
+            foreach (var p in peers)
+            {
+                float pm = Grid.Mass[p.Cell];
+                if (pm > myMass || (pm == myMass && p.Cell < cell))
+                {
+                    iAmGlobalMax = false;
+                    break;
+                }
+            }
+            if (iAmGlobalMax)
+            {
+                EqualizerNetwork.UpdateActiveFlowFromSource(cell);
+            }
+
             if (shouldLog)
             {
                 Debug.Log($"[GPE] cell={cell} myMass={myMass:F2} → cell={target.Cell} (mass={targetMass:F2}) transfer={transfer:F3} peers={peers.Count}");
