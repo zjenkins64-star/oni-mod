@@ -189,7 +189,7 @@ namespace GasPressureEqualizer
             );
             Strings.Add(
                 $"STRINGS.BUILDINGS.PREFABS.{ventId}.DESC",
-                "A powerless vent that exchanges gas with its room. Connect two vents with Equalizer Ducts to passively equalize pressure — gas flows from high pressure to low."
+                "A powerless vent that exchanges gas with its room. Place directly on top of an Equalizer Duct end. Pair two vents with ducts to passively equalize pressure — gas flows from high pressure to low."
             );
             Strings.Add(
                 $"STRINGS.BUILDINGS.PREFABS.{ventId}.EFFECT",
@@ -207,7 +207,7 @@ namespace GasPressureEqualizer
             );
             Strings.Add(
                 $"STRINGS.BUILDINGS.PREFABS.{pipeId}.EFFECT",
-                "Carries pressure information between Equalizer Vents. Place adjacent to or beneath an Equalizer Vent to bridge it into the network."
+                "Carries pressure information between Equalizer Vents. Place an Equalizer Vent directly on top of a duct end to bridge it into the network."
             );
 
             string bridgeId = EqualizerBridgeConfig.ID.ToUpperInvariant();
@@ -224,9 +224,11 @@ namespace GasPressureEqualizer
                 "Place across a 3-cell span to bridge two Equalizer Ducts together. The middle cell carries no network connection — perpendicular networks can pass through it freely."
             );
 
-            ModUtil.AddBuildingToPlanScreen("HVAC", GasPressureEqualizerVentConfig.ID);
-            ModUtil.AddBuildingToPlanScreen("HVAC", EqualizerPipeConfig.ID);
-            ModUtil.AddBuildingToPlanScreen("HVAC", EqualizerBridgeConfig.ID);
+            // Place each in the "pipes" subcategory of the Ventilation tab,
+            // anchored right after its stock counterpart for easy discovery.
+            ModUtil.AddBuildingToPlanScreen("HVAC", EqualizerPipeConfig.ID, "pipes", "GasConduit");
+            ModUtil.AddBuildingToPlanScreen("HVAC", EqualizerBridgeConfig.ID, "pipes", "GasConduitBridge");
+            ModUtil.AddBuildingToPlanScreen("HVAC", GasPressureEqualizerVentConfig.ID, "pipes", "GasVent");
         }
     }
 }

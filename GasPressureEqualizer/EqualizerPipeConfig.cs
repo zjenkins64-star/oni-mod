@@ -18,7 +18,7 @@ namespace GasPressureEqualizer
                 10,
                 3f,
                 BUILDINGS.CONSTRUCTION_MASS_KG.TIER0,
-                MATERIALS.RAW_METALS,
+                MATERIALS.RAW_MINERALS_OR_METALS,
                 1600f,
                 BuildLocationRule.Anywhere,
                 BUILDINGS.DECOR.NONE,

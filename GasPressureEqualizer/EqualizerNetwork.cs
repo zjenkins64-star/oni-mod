@@ -98,23 +98,15 @@ namespace GasPressureEqualizer
                 }
             }
 
+            // Strict on-top placement: a vent counts as connected only when
+            // its own cell is a duct/bridge cell. Adjacent vents are ignored.
             foreach (var kvp in VentByCell)
             {
                 var v = kvp.Value;
                 if (v == self) continue;
-                int vc = kvp.Key;
-                if (visitedPipes.Contains(vc))
+                if (visitedPipes.Contains(kvp.Key))
                 {
                     result.Add(v);
-                    continue;
-                }
-                foreach (int n in NeighborsOf(vc))
-                {
-                    if (visitedPipes.Contains(n))
-                    {
-                        result.Add(v);
-                        break;
-                    }
                 }
             }
 
@@ -169,20 +161,10 @@ namespace GasPressureEqualizer
             foreach (var kvp in VentByCell)
             {
                 if (kvp.Key == sourceCell) continue;
+                // Strict on-top: peer vent's cell must itself be a duct cell.
+                if (!depthMap.ContainsKey(kvp.Key)) continue;
 
-                int entry = -1;
-                int entryDepth = int.MaxValue;
-                foreach (int c in CellsAtOrAdjacent(kvp.Key))
-                {
-                    if (depthMap.TryGetValue(c, out int d) && d < entryDepth)
-                    {
-                        entry = c;
-                        entryDepth = d;
-                    }
-                }
-                if (entry == -1) continue;
-
-                int current = entry;
+                int current = kvp.Key;
                 while (current != -1)
                 {
                     int d = depthMap[current];
