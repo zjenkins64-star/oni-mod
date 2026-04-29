@@ -13,7 +13,7 @@ namespace GasPressureEqualizer
                 ID,
                 1,
                 1,
-                "ventgas_kanim",
+                "equalizer_vent_kanim",
                 30,
                 30f,
                 BUILDINGS.CONSTRUCTION_MASS_KG.TIER1,

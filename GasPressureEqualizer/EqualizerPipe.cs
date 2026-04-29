@@ -4,8 +4,11 @@ namespace GasPressureEqualizer
 {
     public class EqualizerPipe : KMonoBehaviour
     {
-        private static readonly Color RED_BASE = new Color(0.7f, 0.2f, 0.2f);
-        private static readonly Color RED_BRIGHT = new Color(1f, 0.95f, 0.45f);
+        // White base = the painted PNG colors show through unchanged.
+        // Wave shifts to a strong warm yellow + brightness boost so the flow
+        // pulse pops visibly over the painted texture.
+        private static readonly Color BASE_TINT = Color.white;
+        private static readonly Color WAVE_TINT = new Color(1.6f, 1.4f, 0.6f);
 
         private int cell;
         private KBatchedAnimController anim;
@@ -16,8 +19,6 @@ namespace GasPressureEqualizer
             cell = Grid.PosToCell(this);
             EqualizerNetwork.RegisterPipe(cell);
 
-            // Detach from the stock gas conduit network so our ducts don't
-            // share gas with stock gas pipes connected adjacent to them.
             var conduit = GetComponent<Conduit>();
             if (conduit != null)
             {
@@ -27,7 +28,7 @@ namespace GasPressureEqualizer
             anim = GetComponent<KBatchedAnimController>();
             if (anim != null)
             {
-                anim.TintColour = RED_BASE;
+                anim.TintColour = BASE_TINT;
             }
         }
 
@@ -43,11 +44,11 @@ namespace GasPressureEqualizer
 
             if (EqualizerNetwork.TryGetWaveBrightness(cell, out float b))
             {
-                anim.TintColour = Color.Lerp(RED_BASE, RED_BRIGHT, b);
+                anim.TintColour = Color.Lerp(BASE_TINT, WAVE_TINT, b);
             }
             else
             {
-                anim.TintColour = RED_BASE;
+                anim.TintColour = BASE_TINT;
             }
         }
     }

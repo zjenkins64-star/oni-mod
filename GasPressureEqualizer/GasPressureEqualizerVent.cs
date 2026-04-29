@@ -10,7 +10,7 @@ namespace GasPressureEqualizer
         private const float DEAD_BAND_KG = 0.05f;
         private const float TRANSFER_RATE = 0.25f;
         private const int LOG_EVERY_N_TICKS = 5;
-        private static readonly Color RED_TINT = new Color(1f, 0.45f, 0.45f);
+        private static readonly Color BASE_TINT = Color.white;
 
         private int cell;
         private int tickCount;
@@ -24,7 +24,7 @@ namespace GasPressureEqualizer
             var anim = GetComponent<KBatchedAnimController>();
             if (anim != null)
             {
-                anim.TintColour = RED_TINT;
+                anim.TintColour = BASE_TINT;
             }
 
             Debug.Log($"[GPE] Vent OnSpawn cell={cell}");

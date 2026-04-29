@@ -1,3 +1,6 @@
+# KanimDumper extraction markers (machine-local, regenerated as needed)
+**/anim/**/.dumped
+
 # Build output
 [Bb]in/
 [Oo]bj/

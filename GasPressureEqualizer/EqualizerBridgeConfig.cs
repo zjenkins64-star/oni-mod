@@ -13,7 +13,7 @@ namespace GasPressureEqualizer
                 ID,
                 3,
                 1,
-                "utilitygasbridge_kanim",
+                "equalizer_bridge_kanim",
                 10,
                 3f,
                 BUILDINGS.CONSTRUCTION_MASS_KG.TIER1,

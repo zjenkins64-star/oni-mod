@@ -4,7 +4,7 @@ namespace GasPressureEqualizer
 {
     public class EqualizerBridge : KMonoBehaviour
     {
-        private static readonly Color RED_TINT = new Color(1f, 0.45f, 0.45f);
+        private static readonly Color BASE_TINT = Color.white;
 
         private int inputCell;
         private int outputCell;
@@ -32,7 +32,7 @@ namespace GasPressureEqualizer
             var anim = GetComponent<KBatchedAnimController>();
             if (anim != null)
             {
-                anim.TintColour = RED_TINT;
+                anim.TintColour = BASE_TINT;
             }
         }
 

@@ -40,6 +40,15 @@
 			  DestinationFolder="$(ONIModPath)"
 			  SkipUnchangedFiles="true" />
 
+		<!-- Copy custom kanim assets, preserving subfolder structure. -->
+		<ItemGroup>
+			<AnimAssets Include="$(ProjectDir)anim\**\*"
+			            Exclude="$(ProjectDir)anim\**\.dumped" />
+		</ItemGroup>
+		<Copy SourceFiles="@(AnimAssets)"
+			  DestinationFiles="@(AnimAssets->'$(ONIModPath)anim\%(RecursiveDir)%(Filename)%(Extension)')"
+			  SkipUnchangedFiles="true" />
+
 	</Target>
 
 	<!-- ===================== -->
@@ -69,6 +78,10 @@
 
 		<Reference Include="UnityEngine.PhysicsModule">
 			<HintPath>D:\Games\SteamLibrary\steamapps\common\OxygenNotIncluded\OxygenNotIncluded_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+		</Reference>
+
+		<Reference Include="UnityEngine.ImageConversionModule">
+			<HintPath>D:\Games\SteamLibrary\steamapps\common\OxygenNotIncluded\OxygenNotIncluded_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
 		</Reference>
 
 	</ItemGroup>

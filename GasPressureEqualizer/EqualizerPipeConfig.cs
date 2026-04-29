@@ -14,7 +14,7 @@ namespace GasPressureEqualizer
                 ID,
                 1,
                 1,
-                "utilities_gas_kanim",
+                "equalizer_duct_kanim",
                 10,
                 3f,
                 BUILDINGS.CONSTRUCTION_MASS_KG.TIER0,
