@@ -32,6 +32,17 @@ namespace GasPressureEqualizer
             {
                 anim.TintColour = BASE_TINT;
             }
+
+            // Apply manual connection bits for self + 4 neighbors. The bulk
+            // of the work happens in our Conduit.OnStructureTemperatureRegistered
+            // patch (which fires after the gas network knows about us), but
+            // doing it here too covers the case where a neighbor's registration
+            // has already finished by the time we spawn.
+            EqualizerVisuals.ApplyManualBits(cell);
+            EqualizerVisuals.ApplyManualBits(Grid.CellAbove(cell));
+            EqualizerVisuals.ApplyManualBits(Grid.CellBelow(cell));
+            EqualizerVisuals.ApplyManualBits(Grid.CellLeft(cell));
+            EqualizerVisuals.ApplyManualBits(Grid.CellRight(cell));
         }
 
         protected override void OnCleanUp()

@@ -123,6 +123,59 @@ namespace GasPressureEqualizer
             {
                 selectable.RemoveStatusItem(Db.Get().BuildingStatusItems.Pipe);
             }
+            if (__instance.GetComponent<EqualizerPipe>() != null)
+            {
+                int c = Grid.PosToCell(__instance.transform.GetPosition());
+                EqualizerVisuals.ApplyManualBits(c);
+                EqualizerVisuals.ApplyManualBits(Grid.CellAbove(c));
+                EqualizerVisuals.ApplyManualBits(Grid.CellBelow(c));
+                EqualizerVisuals.ApplyManualBits(Grid.CellLeft(c));
+                EqualizerVisuals.ApplyManualBits(Grid.CellRight(c));
+            }
+        }
+    }
+
+    // The engine's gas-network connection computation runs at the wrong time
+    // for save-load / dupe-built ducts: SetConnections(cell) recomputes from
+    // registered network nodes, but our Conduit only registers AFTER that runs.
+    // Result: every duct gets bits=0 and the engine never recomputes again.
+    //
+    // Rather than fight the timing, we just compute the bits ourselves from the
+    // 4 cardinal neighbors and write them via UpdateConnections (the same public
+    // API our cross-system Refresh patch uses). This is bulletproof — it doesn't
+    // depend on engine internals or registration order.
+    public static class EqualizerVisuals
+    {
+        public static void ApplyManualBits(int cell)
+        {
+            if (cell < 0 || cell >= Grid.CellCount) return;
+            var go = Grid.Objects[cell, 13]; // ObjectLayer.GasConduit
+            if (go == null) return;
+            if (go.GetComponent<EqualizerPipe>() == null) return;
+            var viz = go.GetComponent<KAnimGraphTileVisualizer>();
+            if (viz == null) return;
+
+            UtilityConnections bits = 0;
+            if (IsEqualizerPipeAt(Grid.CellAbove(cell))) bits |= UtilityConnections.Up;
+            if (IsEqualizerPipeAt(Grid.CellBelow(cell))) bits |= UtilityConnections.Down;
+            if (IsEqualizerPipeAt(Grid.CellLeft(cell))) bits |= UtilityConnections.Left;
+            if (IsEqualizerPipeAt(Grid.CellRight(cell))) bits |= UtilityConnections.Right;
+
+            viz.UpdateConnections(bits);
+
+            var anim = go.GetComponent<KBatchedAnimController>();
+            string sym = viz.connectionManager?.GetVisualizerString(cell);
+            if (anim != null && !string.IsNullOrEmpty(sym))
+            {
+                anim.Play(sym);
+            }
+        }
+
+        private static bool IsEqualizerPipeAt(int c)
+        {
+            if (c < 0 || c >= Grid.CellCount) return false;
+            var go = Grid.Objects[c, 13];
+            return go != null && go.GetComponent<EqualizerPipe>() != null;
         }
     }
 
@@ -140,25 +193,16 @@ namespace GasPressureEqualizer
             inRefresh = true;
             try
             {
-                RefreshEqualizerNeighbor(Grid.CellAbove(cell));
-                RefreshEqualizerNeighbor(Grid.CellBelow(cell));
-                RefreshEqualizerNeighbor(Grid.CellLeft(cell));
-                RefreshEqualizerNeighbor(Grid.CellRight(cell));
+                EqualizerVisuals.ApplyManualBits(cell);
+                EqualizerVisuals.ApplyManualBits(Grid.CellAbove(cell));
+                EqualizerVisuals.ApplyManualBits(Grid.CellBelow(cell));
+                EqualizerVisuals.ApplyManualBits(Grid.CellLeft(cell));
+                EqualizerVisuals.ApplyManualBits(Grid.CellRight(cell));
             }
             finally
             {
                 inRefresh = false;
             }
-        }
-
-        private static void RefreshEqualizerNeighbor(int cell)
-        {
-            if (cell < 0 || cell >= Grid.CellCount) return;
-            var go = Grid.Objects[cell, 13]; // ObjectLayer.GasConduit
-            if (go == null) return;
-            if (go.GetComponent<EqualizerPipe>() == null) return;
-            var viz = go.GetComponent<KAnimGraphTileVisualizer>();
-            if (viz != null) viz.Refresh();
         }
     }
 

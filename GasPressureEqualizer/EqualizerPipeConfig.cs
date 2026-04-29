@@ -70,9 +70,13 @@ namespace GasPressureEqualizer
 
         public override void DoPostConfigureUnderConstruction(GameObject go)
         {
+            // Mirror stock GasConduitConfig - the under-construction prefab also
+            // needs a tile visualizer, otherwise dupe-built ducts can fail to
+            // refresh tile-connection visuals after completion.
             var visualizer = go.AddComponent<KAnimGraphTileVisualizer>();
             visualizer.connectionSource = KAnimGraphTileVisualizer.ConnectionSource.Gas;
             visualizer.isPhysicalBuilding = false;
         }
+
     }
 }
