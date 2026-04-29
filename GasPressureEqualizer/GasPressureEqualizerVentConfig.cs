@@ -29,6 +29,16 @@ namespace GasPressureEqualizer
             def.Entombable = false;
             def.PermittedRotations = PermittedRotations.Unrotatable;
 
+            // Declare as a gas conduit endpoint so the overlay treats us as a
+            // proper vent. We don't add ConduitConsumer/Dispenser components,
+            // so the engine won't actually move gas through the vent.
+            def.InputConduitType = ConduitType.Gas;
+            def.OutputConduitType = ConduitType.Gas;
+            def.UtilityInputOffset = new CellOffset(0, 0);
+            def.UtilityOutputOffset = new CellOffset(0, 0);
+
+            GeneratedBuildings.RegisterWithOverlay(OverlayScreen.GasVentIDs, ID);
+
             return def;
         }
 
@@ -40,6 +50,17 @@ namespace GasPressureEqualizer
 
         public override void DoPostConfigureComplete(GameObject go)
         {
+            // BuildingLoader auto-adds RequireInputs / ConduitConsumer / etc when
+            // InputConduitType=Gas is declared on the def. We declared it only
+            // for overlay recognition, not for actual gas flow — the equalizer
+            // moves gas via SimMessages teleport. Strip the auto-added stock
+            // plumbing so we don't get "Needs Gas In" / "Empty pipe" tooltips.
+            UnityEngine.Object.DestroyImmediate(go.GetComponent<RequireInputs>());
+            UnityEngine.Object.DestroyImmediate(go.GetComponent<RequireOutputs>());
+            UnityEngine.Object.DestroyImmediate(go.GetComponent<ConduitConsumer>());
+            UnityEngine.Object.DestroyImmediate(go.GetComponent<ConduitDispenser>());
+
+            go.GetComponent<KPrefabID>().AddTag(GameTags.Vents);
         }
     }
 }

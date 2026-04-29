@@ -103,6 +103,29 @@ namespace GasPressureEqualizer
         }
     }
 
+    // Suppress the "Contents: Empty" pipe status item on any of our equalizer
+    // buildings. Conduit.OnStructureTemperatureRegistered adds
+    // Db.Get().BuildingStatusItems.Pipe; we yank it back off for our ducts,
+    // vents, and bridges (the engine auto-adds a Conduit to anything with
+    // InputConduitType / OutputConduitType set).
+    [HarmonyPatch(typeof(Conduit), "OnStructureTemperatureRegistered")]
+    public static class Conduit_OnStructureTemperatureRegistered_StatusItemPatch
+    {
+        public static void Postfix(Conduit __instance)
+        {
+            if (__instance == null) return;
+            bool isOurs = __instance.GetComponent<EqualizerPipe>() != null
+                       || __instance.GetComponent<GasPressureEqualizerVent>() != null
+                       || __instance.GetComponent<EqualizerBridge>() != null;
+            if (!isOurs) return;
+            var selectable = __instance.GetComponent<KSelectable>();
+            if (selectable != null)
+            {
+                selectable.RemoveStatusItem(Db.Get().BuildingStatusItems.Pipe);
+            }
+        }
+    }
+
     // Whenever the gas conduit network updates a cell's connections (Reconnect
     // updates neighbor data but doesn't refresh their kanim), force-refresh any
     // EqualizerPipe in the 4 adjacent cells so stale cross-system stubs clear.
@@ -136,6 +159,21 @@ namespace GasPressureEqualizer
             if (go.GetComponent<EqualizerPipe>() == null) return;
             var viz = go.GetComponent<KAnimGraphTileVisualizer>();
             if (viz != null) viz.Refresh();
+        }
+    }
+
+    // Add our buildings to the GasPiping tech (same node that unlocks stock
+    // GasConduit / GasConduitBridge / GasPump / GasVent).
+    [HarmonyPatch(typeof(Db), "Initialize")]
+    public static class Db_Initialize_TechPatch
+    {
+        public static void Postfix()
+        {
+            var tech = Db.Get().Techs.TryGet("GasPiping");
+            if (tech == null) return;
+            tech.unlockedItemIDs.Add(GasPressureEqualizerVentConfig.ID);
+            tech.unlockedItemIDs.Add(EqualizerPipeConfig.ID);
+            tech.unlockedItemIDs.Add(EqualizerBridgeConfig.ID);
         }
     }
 
@@ -186,9 +224,9 @@ namespace GasPressureEqualizer
                 "Place across a 3-cell span to bridge two Equalizer Ducts together. The middle cell carries no network connection — perpendicular networks can pass through it freely."
             );
 
-            ModUtil.AddBuildingToPlanScreen("Utilities", GasPressureEqualizerVentConfig.ID);
-            ModUtil.AddBuildingToPlanScreen("Utilities", EqualizerPipeConfig.ID);
-            ModUtil.AddBuildingToPlanScreen("Utilities", EqualizerBridgeConfig.ID);
+            ModUtil.AddBuildingToPlanScreen("HVAC", GasPressureEqualizerVentConfig.ID);
+            ModUtil.AddBuildingToPlanScreen("HVAC", EqualizerPipeConfig.ID);
+            ModUtil.AddBuildingToPlanScreen("HVAC", EqualizerBridgeConfig.ID);
         }
     }
 }

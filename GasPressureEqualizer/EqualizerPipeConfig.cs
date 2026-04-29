@@ -44,6 +44,8 @@ namespace GasPressureEqualizer
             def.PermittedRotations = PermittedRotations.Unrotatable;
             def.ReplacementTags = new List<Tag>();
 
+            GeneratedBuildings.RegisterWithOverlay(OverlayScreen.GasVentIDs, ID);
+
             return def;
         }
 
@@ -62,6 +64,7 @@ namespace GasPressureEqualizer
             var visualizer = go.AddComponent<KAnimGraphTileVisualizer>();
             visualizer.connectionSource = KAnimGraphTileVisualizer.ConnectionSource.Gas;
             visualizer.isPhysicalBuilding = true;
+            go.GetComponent<KPrefabID>().AddTag(GameTags.Vents);
             GeneratedBuildings.RemoveLoopingSounds(go);
         }
 

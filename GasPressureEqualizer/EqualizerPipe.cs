@@ -5,10 +5,10 @@ namespace GasPressureEqualizer
     public class EqualizerPipe : KMonoBehaviour
     {
         // White base = the painted PNG colors show through unchanged.
-        // Wave shifts to a strong warm yellow + brightness boost so the flow
-        // pulse pops visibly over the painted texture.
+        // Wave darkens the painted texture toward middle grey for a subdued
+        // greyscale pulse instead of a coloured highlight.
         private static readonly Color BASE_TINT = Color.white;
-        private static readonly Color WAVE_TINT = new Color(1.6f, 1.4f, 0.6f);
+        private static readonly Color WAVE_TINT = new Color(0.5f, 0.5f, 0.5f);
 
         private int cell;
         private KBatchedAnimController anim;
@@ -19,11 +19,13 @@ namespace GasPressureEqualizer
             cell = Grid.PosToCell(this);
             EqualizerNetwork.RegisterPipe(cell);
 
-            var conduit = GetComponent<Conduit>();
-            if (conduit != null)
-            {
-                conduit.Disconnect();
-            }
+            // Previously we called conduit.Disconnect() to keep our ducts off
+            // the stock gas network, but that made the gas-pipe overlay flag
+            // them as disconnected (red X). Leaving them connected; isolation
+            // from stock gas pipes is now handled by the Refresh / SetConnections
+            // Harmony patches and (eventually) per-cell flow filtering.
+            // var conduit = GetComponent<Conduit>();
+            // if (conduit != null) conduit.Disconnect();
 
             anim = GetComponent<KBatchedAnimController>();
             if (anim != null)

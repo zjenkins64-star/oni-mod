@@ -36,6 +36,10 @@ namespace GasPressureEqualizer
             def.PermittedRotations = PermittedRotations.R360;
             def.UtilityInputOffset = new CellOffset(-1, 0);
             def.UtilityOutputOffset = new CellOffset(1, 0);
+            def.InputConduitType = ConduitType.Gas;
+            def.OutputConduitType = ConduitType.Gas;
+
+            GeneratedBuildings.RegisterWithOverlay(OverlayScreen.GasVentIDs, ID);
 
             return def;
         }
@@ -49,6 +53,12 @@ namespace GasPressureEqualizer
 
         public override void DoPostConfigureComplete(GameObject go)
         {
+            UnityEngine.Object.DestroyImmediate(go.GetComponent<RequireInputs>());
+            UnityEngine.Object.DestroyImmediate(go.GetComponent<RequireOutputs>());
+            UnityEngine.Object.DestroyImmediate(go.GetComponent<ConduitConsumer>());
+            UnityEngine.Object.DestroyImmediate(go.GetComponent<ConduitDispenser>());
+
+            go.GetComponent<KPrefabID>().AddTag(GameTags.Vents);
         }
     }
 }
