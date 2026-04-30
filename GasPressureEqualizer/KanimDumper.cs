@@ -30,6 +30,10 @@ namespace GasPressureEqualizer
 
         public static void Prefix(KAnimFile __instance)
         {
+            // Dev-only safety gate: the ROOT path is hardcoded to the
+            // author's machine. On any other user's box that path won't
+            // exist and writing there can throw. Bail before doing anything.
+            if (!Directory.Exists(ROOT)) return;
             if (__instance == null) return;
             string n = __instance.name ?? string.Empty;
 
