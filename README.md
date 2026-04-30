@@ -75,16 +75,37 @@ Enable in the in-game mod menu, restart when prompted.
 
 ### From source
 
-Requires Visual Studio + .NET Framework 4.7.1 SDK and Oxygen Not Included
-installed at `D:\Games\SteamLibrary\steamapps\common\OxygenNotIncluded\` (or
-edit the paths in `GasPressureEqualizer.csproj`).
+Requires Visual Studio + .NET Framework 4.7.1 SDK (Windows) or the .NET 4.8
+reference assemblies (macOS) and an Oxygen Not Included install.
 
 ```
 dotnet build GasPressureEqualizer/GasPressureEqualizer.csproj -c Release
 ```
 
+The csproj auto-detects ONI in the common Steam install locations on Windows
+(`C:\Program Files (x86)\Steam\...`, `D:\Games\SteamLibrary\...`) and macOS
+(`~/Library/Application Support/Steam/...`). If yours is somewhere else, set
+`ONI_INSTALL` before building:
+
+```
+# Windows (PowerShell)
+$env:ONI_INSTALL = "E:\Steam\steamapps\common\OxygenNotIncluded"
+dotnet build GasPressureEqualizer/GasPressureEqualizer.csproj -c Release
+
+# macOS / Linux
+ONI_INSTALL="$HOME/Games/OxygenNotIncluded" \
+  dotnet build GasPressureEqualizer/GasPressureEqualizer.csproj -c Release
+```
+
+The mods folder is also auto-detected (Windows resolves `Documents\Klei\...`
+through the real Documents path, so OneDrive-redirected setups Just Work; Mac
+uses `~/Library/Application Support/unity.Klei.Oxygen Not Included/mods/Local`).
+Override with `ONI_MODS_DIR` if needed.
+
 The post-build target copies the DLL, `mod_info.yaml`, `mod.yaml`, and the
-`anim/` folder to your local mods folder automatically.
+`anim/` folder into `<ONI_MODS_DIR>/GasPressureEqualizer/` automatically. If
+the mods folder doesn't exist (e.g. on a build machine without ONI), the copy
+step is skipped silently and the build still succeeds.
 
 ## Credits
 
