@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net48</TargetFramework>
@@ -17,27 +17,68 @@
 		<DebugSymbols>true</DebugSymbols>
 	</PropertyGroup>
 
-	<!-- ===================== -->
-	<!-- COPY BUILD OUTPUT TO ONI -->
-	<!-- ===================== -->
-	<Target Name="CopyToONIModFolder" AfterTargets="Build">
+	<!-- ===========================================================
+	     Cross-platform path resolution.
 
-		<PropertyGroup>
-			<ONIModPath>C:\Users\zjenk\OneDrive\Documents\Klei\OxygenNotIncluded\mods\Local\GasPressureEqualizer\</ONIModPath>
-		</PropertyGroup>
+	     Override the auto-detected paths by setting either of these
+	     environment variables (or pass /p:ONIInstall=... on the CLI):
 
-		<MakeDir Directories="$(ONIModPath)" />
+	         ONI_INSTALL    root of the OxygenNotIncluded install
+	                        (the folder that contains OxygenNotIncluded_Data
+	                        on Windows, or OxygenNotIncluded.app on macOS)
+
+	         ONI_MODS_DIR   directory that contains your "Local" mods folder
+	                        (i.e. the parent of "GasPressureEqualizer")
+	     =========================================================== -->
+	<PropertyGroup>
+		<ONIInstall Condition="'$(ONIInstall)' == '' AND '$(ONI_INSTALL)' != ''">$(ONI_INSTALL)</ONIInstall>
+
+		<!-- Windows fallbacks (most common Steam install locations) -->
+		<ONIInstall Condition="'$(ONIInstall)' == '' AND '$(OS)' == 'Windows_NT' AND Exists('D:\Games\SteamLibrary\steamapps\common\OxygenNotIncluded')">D:\Games\SteamLibrary\steamapps\common\OxygenNotIncluded</ONIInstall>
+		<ONIInstall Condition="'$(ONIInstall)' == '' AND '$(OS)' == 'Windows_NT' AND Exists('C:\Program Files (x86)\Steam\steamapps\common\OxygenNotIncluded')">C:\Program Files (x86)\Steam\steamapps\common\OxygenNotIncluded</ONIInstall>
+		<ONIInstall Condition="'$(ONIInstall)' == '' AND '$(OS)' == 'Windows_NT' AND Exists('C:\Program Files\Steam\steamapps\common\OxygenNotIncluded')">C:\Program Files\Steam\steamapps\common\OxygenNotIncluded</ONIInstall>
+
+		<!-- macOS Steam install -->
+		<ONIInstall Condition="'$(ONIInstall)' == '' AND '$(OS)' != 'Windows_NT' AND Exists('$(HOME)/Library/Application Support/Steam/steamapps/common/OxygenNotIncluded')">$(HOME)/Library/Application Support/Steam/steamapps/common/OxygenNotIncluded</ONIInstall>
+
+		<!-- Resolve the Managed/ folder. Layout differs between Windows and Mac. -->
+		<ONIManaged Condition="'$(OS)' == 'Windows_NT'">$(ONIInstall)\OxygenNotIncluded_Data\Managed</ONIManaged>
+		<ONIManaged Condition="'$(OS)' != 'Windows_NT'">$(ONIInstall)/OxygenNotIncluded.app/Contents/Resources/Data/Managed</ONIManaged>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<ONIModsDir Condition="'$(ONIModsDir)' == '' AND '$(ONI_MODS_DIR)' != ''">$(ONI_MODS_DIR)</ONIModsDir>
+
+		<!-- Windows: resolve the real Documents folder, which transparently handles
+		     OneDrive-redirected Documents (e.g. C:\Users\<user>\OneDrive\Documents). -->
+		<ONIModsDir Condition="'$(ONIModsDir)' == '' AND '$(OS)' == 'Windows_NT'">$([System.Environment]::GetFolderPath(SpecialFolder.MyDocuments))\Klei\OxygenNotIncluded\mods\Local</ONIModsDir>
+
+		<!-- macOS standard mods location -->
+		<ONIModsDir Condition="'$(ONIModsDir)' == '' AND '$(OS)' != 'Windows_NT'">$(HOME)/Library/Application Support/unity.Klei.Oxygen Not Included/mods/Local</ONIModsDir>
+
+		<ONIModInstallPath Condition="'$(OS)' == 'Windows_NT'">$(ONIModsDir)\GasPressureEqualizer</ONIModInstallPath>
+		<ONIModInstallPath Condition="'$(OS)' != 'Windows_NT'">$(ONIModsDir)/GasPressureEqualizer</ONIModInstallPath>
+	</PropertyGroup>
+
+	<!-- ===========================================================
+	     Post-build: install the mod into the local Klei mods folder.
+	     Skipped silently if the mods folder doesn't exist (e.g. on a
+	     machine without ONI installed, or in CI).
+	     =========================================================== -->
+	<Target Name="CopyToONIModFolder" AfterTargets="Build" Condition="'$(ONIModsDir)' != '' AND Exists('$(ONIModsDir)')">
+
+		<MakeDir Directories="$(ONIModInstallPath)" />
 
 		<Copy SourceFiles="$(TargetPath)"
-			  DestinationFolder="$(ONIModPath)"
+			  DestinationFolder="$(ONIModInstallPath)"
 			  SkipUnchangedFiles="true" />
 
 		<Copy SourceFiles="$(ProjectDir)mod_info.yaml"
-			  DestinationFolder="$(ONIModPath)"
+			  DestinationFolder="$(ONIModInstallPath)"
 			  SkipUnchangedFiles="true" />
 
 		<Copy SourceFiles="$(ProjectDir)mod.yaml"
-			  DestinationFolder="$(ONIModPath)"
+			  DestinationFolder="$(ONIModInstallPath)"
 			  SkipUnchangedFiles="true" />
 
 		<!-- Copy custom kanim assets, preserving subfolder structure. -->
@@ -46,42 +87,52 @@
 			            Exclude="$(ProjectDir)anim\**\.dumped" />
 		</ItemGroup>
 		<Copy SourceFiles="@(AnimAssets)"
-			  DestinationFiles="@(AnimAssets->'$(ONIModPath)anim\%(RecursiveDir)%(Filename)%(Extension)')"
+			  DestinationFiles="@(AnimAssets->'$(ONIModInstallPath)\anim\%(RecursiveDir)%(Filename)%(Extension)')"
 			  SkipUnchangedFiles="true" />
 
+		<Message Importance="high" Text="Installed GasPressureEqualizer to $(ONIModInstallPath)" />
 	</Target>
 
-	<!-- ===================== -->
-	<!-- ONI REFERENCES -->
-	<!-- ===================== -->
+	<!-- ===========================================================
+	     ONI references. <Private>false</Private> keeps these out of the
+	     build output - the game provides them at runtime, so we only
+	     need them at compile time.
+	     =========================================================== -->
 	<ItemGroup>
 
 		<Reference Include="0Harmony">
-			<HintPath>D:\Games\SteamLibrary\steamapps\common\OxygenNotIncluded\OxygenNotIncluded_Data\Managed\0Harmony.dll</HintPath>
+			<HintPath>$(ONIManaged)\0Harmony.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
 
 		<Reference Include="Assembly-CSharp">
-			<HintPath>D:\Games\SteamLibrary\steamapps\common\OxygenNotIncluded\OxygenNotIncluded_Data\Managed\Assembly-CSharp.dll</HintPath>
+			<HintPath>$(ONIManaged)\Assembly-CSharp.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
 
 		<Reference Include="Assembly-CSharp-firstpass">
-			<HintPath>D:\Games\SteamLibrary\steamapps\common\OxygenNotIncluded\OxygenNotIncluded_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+			<HintPath>$(ONIManaged)\Assembly-CSharp-firstpass.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
 
 		<Reference Include="UnityEngine">
-			<HintPath>D:\Games\SteamLibrary\steamapps\common\OxygenNotIncluded\OxygenNotIncluded_Data\Managed\UnityEngine.dll</HintPath>
+			<HintPath>$(ONIManaged)\UnityEngine.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
 
 		<Reference Include="UnityEngine.CoreModule">
-			<HintPath>D:\Games\SteamLibrary\steamapps\common\OxygenNotIncluded\OxygenNotIncluded_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+			<HintPath>$(ONIManaged)\UnityEngine.CoreModule.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
 
 		<Reference Include="UnityEngine.PhysicsModule">
-			<HintPath>D:\Games\SteamLibrary\steamapps\common\OxygenNotIncluded\OxygenNotIncluded_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+			<HintPath>$(ONIManaged)\UnityEngine.PhysicsModule.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
 
 		<Reference Include="UnityEngine.ImageConversionModule">
-			<HintPath>D:\Games\SteamLibrary\steamapps\common\OxygenNotIncluded\OxygenNotIncluded_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+			<HintPath>$(ONIManaged)\UnityEngine.ImageConversionModule.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
 
 	</ItemGroup>
