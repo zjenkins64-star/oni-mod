@@ -81,6 +81,11 @@
 			  DestinationFolder="$(ONIModInstallPath)"
 			  SkipUnchangedFiles="true" />
 
+		<Copy SourceFiles="$(ProjectDir)changelog.txt"
+			  DestinationFolder="$(ONIModInstallPath)"
+			  SkipUnchangedFiles="true"
+			  Condition="Exists('$(ProjectDir)changelog.txt')" />
+
 		<!-- Copy custom kanim assets, preserving subfolder structure. -->
 		<ItemGroup>
 			<AnimAssets Include="$(ProjectDir)anim\**\*"

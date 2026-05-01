@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using TUNING;
 
@@ -29,13 +30,28 @@ namespace GasPressureEqualizer
             def.Entombable = false;
             def.PermittedRotations = PermittedRotations.Unrotatable;
 
-            // Declare as a gas conduit endpoint so the overlay treats us as a
-            // proper vent. We don't add ConduitConsumer/Dispenser components,
-            // so the engine won't actually move gas through the vent.
-            def.InputConduitType = ConduitType.Gas;
-            def.OutputConduitType = ConduitType.Gas;
-            def.UtilityInputOffset = new CellOffset(0, 0);
-            def.UtilityOutputOffset = new CellOffset(0, 0);
+            // We deliberately do NOT set def.InputConduitType / OutputConduitType.
+            // Declaring those caused the engine to register the vent as a
+            // gas-network endpoint at the same cell as the underlying duct's
+            // Conduit, stomping the duct's existing endpoint and emitting a
+            // "Adding FlowUtilityNetwork+NetworkItem will stomp previous endpoint"
+            // warning. They also auto-added RequireInputs / ConduitConsumer /
+            // ConduitDispenser components which we had to DestroyImmediate.
+            // RegisterWithOverlay below is sufficient for the gas overlay to
+            // highlight us; gas movement is done via SimMessages teleport.
+
+            // Single logic input port — green enables this specific vent's
+            // gas-equalization behavior, red disables it. Other vents on the
+            // same network are controlled independently.
+            def.LogicInputPorts = new List<LogicPorts.Port>
+            {
+                LogicPorts.Port.InputPort(
+                    LogicOperationalController.PORT_ID,
+                    new CellOffset(0, 0),
+                    "Logic Control",
+                    "Enable this vent's gas equalization.",
+                    "Disable this vent's gas equalization.")
+            };
 
             GeneratedBuildings.RegisterWithOverlay(OverlayScreen.GasVentIDs, ID);
 
@@ -45,21 +61,12 @@ namespace GasPressureEqualizer
         public override void ConfigureBuildingTemplate(GameObject go, Tag prefab_tag)
         {
             go.AddOrGet<Operational>();
+            go.AddOrGet<LogicOperationalController>();
             go.AddOrGet<GasPressureEqualizerVent>();
         }
 
         public override void DoPostConfigureComplete(GameObject go)
         {
-            // BuildingLoader auto-adds RequireInputs / ConduitConsumer / etc when
-            // InputConduitType=Gas is declared on the def. We declared it only
-            // for overlay recognition, not for actual gas flow — the equalizer
-            // moves gas via SimMessages teleport. Strip the auto-added stock
-            // plumbing so we don't get "Needs Gas In" / "Empty pipe" tooltips.
-            UnityEngine.Object.DestroyImmediate(go.GetComponent<RequireInputs>());
-            UnityEngine.Object.DestroyImmediate(go.GetComponent<RequireOutputs>());
-            UnityEngine.Object.DestroyImmediate(go.GetComponent<ConduitConsumer>());
-            UnityEngine.Object.DestroyImmediate(go.GetComponent<ConduitDispenser>());
-
             go.GetComponent<KPrefabID>().AddTag(GameTags.Vents);
         }
     }

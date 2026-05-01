@@ -1,0 +1,50 @@
+Gas Pressure Equalizer - Changelog
+===================================
+
+v1.1.3
+------
+- Animate the Equalizer Vent (was rendering on a static frame).
+- Long pipe runs now show 3 staggered flow pulses instead of one, so a
+  pulse is almost always visible somewhere on screen.
+- DLL now reports a real version to Steam Workshop / mod list (was 0.0.0.0).
+- Added this changelog.
+
+v1.1.2
+------
+- Fix: Equalizer Ducts built by duplicants or restored from a save now
+  connect visually instead of staying isolated (engine's connection-bit
+  recompute was running before our duct registered with the gas network;
+  bits get computed manually now).
+- Fix: Internal kanim-extraction tool no longer touches non-author
+  machines (was a hardcoded dev path that could throw).
+- Build: csproj now auto-detects the ONI install and mods folder on
+  Windows (incl. OneDrive-redirected Documents) and macOS, with
+  ONI_INSTALL / ONI_MODS_DIR env-var overrides. (PR #1, by drewjenkins.)
+- Release zip now contains mod.yaml and the full anim/ tree
+  (v1.1.0 / v1.1.1 zips were missing these and crashed at startup).
+
+v1.1.1
+------
+- Superseded by v1.1.2; release zip was incomplete.
+
+v1.1.0
+------
+- Materials match stock counterparts: Equalizer Vent uses ALL_METALS,
+  Equalizer Duct uses RAW_MINERALS_OR_METALS, Equalizer Bridge uses
+  RAW_MINERALS (was raw metals only).
+- Vent must now be placed *directly on top* of an Equalizer Duct cell
+  to join the network. Adjacent placement no longer counts.
+- Plan-screen reorganization: each Equalizer building now sits in the
+  Ventilation tab's "pipes" subcategory, anchored immediately after its
+  stock counterpart.
+
+v1.0.0 (initial release)
+------------------------
+- Equalizer Vent + Equalizer Duct: passively move gas from a high-pressure
+  room to a low-pressure room when two vents are connected via ducts.
+  No power required.
+- Equalizer Bridge: 3-cell crossover so duct runs can pass over stock
+  pipes / wires / perpendicular ducts without merging networks.
+- Visual flow pulse along ducts indicating direction of gas movement.
+- Custom kanim art for vent, duct, and bridge.
+- Registered under the GasPiping research tech.

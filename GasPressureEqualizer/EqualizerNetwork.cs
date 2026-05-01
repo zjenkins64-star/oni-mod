@@ -19,6 +19,10 @@ namespace GasPressureEqualizer
         private const float WAVE_SPEED_CELLS_PER_SEC = 4f;
         private const float WAVE_WIDTH_CELLS = 1.5f;
         private const float ACTIVITY_TIMEOUT = 0.6f;
+        // Aim for one visible pulse roughly every WAVE_SPACING_CELLS along the
+        // active path. Short runs get one slow-moving pulse; longer runs get
+        // additional pulses staggered evenly so something is always on screen.
+        private const float WAVE_SPACING_CELLS = 8f;
 
         private static readonly Dictionary<int, int> WaveIndexByCell = new Dictionary<int, int>();
         private static int activeSourceCell = -1;
@@ -48,6 +52,15 @@ namespace GasPressureEqualizer
         public static void UnregisterVent(int cell)
         {
             VentByCell.Remove(cell);
+            activeSourceCell = -1;
+        }
+
+        // Drops the cached active-flow source so the next call to
+        // UpdateActiveFlowFromSource does a fresh BFS. Called when a vent's
+        // Operational state flips so pipes leading to a now-disabled vent
+        // stop pulsing on the next sim tick.
+        public static void InvalidateActiveFlow()
+        {
             activeSourceCell = -1;
         }
 
@@ -163,6 +176,9 @@ namespace GasPressureEqualizer
                 if (kvp.Key == sourceCell) continue;
                 // Strict on-top: peer vent's cell must itself be a duct cell.
                 if (!depthMap.ContainsKey(kvp.Key)) continue;
+                // Disabled vents are sealed off — pipes leading to them
+                // shouldn't pulse, since no gas is flowing there.
+                if (!kvp.Value.IsOperational) continue;
 
                 int current = kvp.Key;
                 while (current != -1)
@@ -188,9 +204,18 @@ namespace GasPressureEqualizer
             if (!WaveIndexByCell.TryGetValue(cell, out int idx)) return false;
 
             float wavePeriod = activePathLength + WAVE_WIDTH_CELLS * 2f;
-            float wavePos = (Time.time * WAVE_SPEED_CELLS_PER_SEC) % wavePeriod - WAVE_WIDTH_CELLS;
-            float dist = Mathf.Abs(idx - wavePos);
-            brightness = Mathf.Clamp01(1f - dist / WAVE_WIDTH_CELLS);
+            int waveCount = Mathf.Max(1, Mathf.RoundToInt(activePathLength / WAVE_SPACING_CELLS));
+            float baseWavePos = (Time.time * WAVE_SPEED_CELLS_PER_SEC) % wavePeriod;
+            float best = 0f;
+            for (int i = 0; i < waveCount; i++)
+            {
+                float phaseOffset = wavePeriod * i / waveCount;
+                float wavePos = ((baseWavePos + phaseOffset) % wavePeriod) - WAVE_WIDTH_CELLS;
+                float dist = Mathf.Abs(idx - wavePos);
+                float b = Mathf.Clamp01(1f - dist / WAVE_WIDTH_CELLS);
+                if (b > best) best = b;
+            }
+            brightness = best;
             return true;
         }
 
