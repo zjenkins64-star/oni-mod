@@ -44,6 +44,12 @@ namespace GasPressureEqualizer
         // loop from frame 0 every Sim200ms tick.
         private string currentAnim = "";
 
+        // Diagnostic: track the most recent peer count we logged, so we
+        // only emit a log line when it changes (otherwise every 200ms tick
+        // would spam the log). We initialize to a sentinel so the first
+        // tick always logs.
+        private int lastPeerCount = -1;
+
         protected override void OnSpawn()
         {
             base.OnSpawn();
@@ -59,7 +65,22 @@ namespace GasPressureEqualizer
             UpdateAnimState(active: false);
             lastOperational = IsOperational;
 
-            Debug.Log($"[GPE] Vent OnSpawn cell={cell}");
+            // Diagnostic: full cell snapshot so a vent placed on a non-duct
+            // cell (or on a stock pipe, or on an under-construction duct) is
+            // immediately visible in the log. Also dump the 4 cardinal
+            // neighbors — that's what FindConnectedVents falls back on when
+            // the vent's own cell isn't a pipe cell, so it tells us whether
+            // any pipe is even nearby.
+            bool onDuct = EqualizerNetwork.IsRegisteredDuctCell(cell);
+            bool onBridge = EqualizerNetwork.IsBridgeEndpointRegistered(cell);
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"[GPE] Vent OnSpawn cell={cell} onDuct={onDuct} onBridgeEndpoint={onBridge}");
+            sb.AppendLine($"[GPE]   self:  {EqualizerNetwork.DescribeCell(cell)}");
+            sb.AppendLine($"[GPE]   above: {EqualizerNetwork.DescribeCell(Grid.CellAbove(cell))}");
+            sb.AppendLine($"[GPE]   below: {EqualizerNetwork.DescribeCell(Grid.CellBelow(cell))}");
+            sb.AppendLine($"[GPE]   left:  {EqualizerNetwork.DescribeCell(Grid.CellLeft(cell))}");
+            sb.Append    ($"[GPE]   right: {EqualizerNetwork.DescribeCell(Grid.CellRight(cell))}");
+            Debug.Log(sb.ToString());
         }
 
         // Picks the right anim for the current state and only swaps if it
@@ -119,6 +140,20 @@ namespace GasPressureEqualizer
             float myMass = Grid.Mass[cell];
 
             var peers = EqualizerNetwork.FindConnectedVents(this, cell);
+
+            // Diagnostic: peer count flips. We only log when it changes,
+            // so a steady-state vent with zero peers logs once (when it
+            // first hits zero) instead of every 200ms.
+            if (peers.Count != lastPeerCount)
+            {
+                int totalRegistered = EqualizerNetwork.RegisteredVentCount;
+                bool onDuct = EqualizerNetwork.IsRegisteredDuctCell(cell);
+                int reachable = EqualizerNetwork.CountReachablePipeCellsFromCell(cell);
+                Debug.Log($"[GPE-Vent] cell={cell} peers={peers.Count} (was {lastPeerCount}) " +
+                          $"totalVentsRegistered={totalRegistered} onDuct={onDuct} reachablePipeCells={reachable}");
+                lastPeerCount = peers.Count;
+            }
+
             if (peers.Count == 0)
             {
                 UpdateAnimState(active: false);

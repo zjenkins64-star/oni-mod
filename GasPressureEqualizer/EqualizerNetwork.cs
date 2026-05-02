@@ -66,14 +66,87 @@ namespace GasPressureEqualizer
 
         public static void RegisterBridgeEndpoint(int cell, int outwardCell, int tunnelPartner)
         {
+            bool stomped = BridgeEndpoints.ContainsKey(cell);
             BridgeEndpoints[cell] = new BridgeEndpoint(outwardCell, tunnelPartner);
             activeSourceCell = -1;
+            Debug.Log($"[GPE-Net] RegisterBridgeEndpoint cell={cell} outward={outwardCell} partner={tunnelPartner} stompedExisting={stomped} totalEndpoints={BridgeEndpoints.Count}");
         }
 
         public static void UnregisterBridgeEndpoint(int cell)
         {
-            BridgeEndpoints.Remove(cell);
+            bool removed = BridgeEndpoints.Remove(cell);
             activeSourceCell = -1;
+            Debug.Log($"[GPE-Net] UnregisterBridgeEndpoint cell={cell} removed={removed} totalEndpoints={BridgeEndpoints.Count}");
+        }
+
+        public static bool IsBridgeEndpointRegistered(int cell) => BridgeEndpoints.ContainsKey(cell);
+        public static bool IsRegisteredDuctCell(int cell) => DuctCells.Contains(cell);
+        public static int RegisteredVentCount => VentByCell.Count;
+
+        // Single-line dump of what occupies a cell across the layers we
+        // care about — used by both the bridge OnSpawn snapshot and the
+        // vent OnSpawn snapshot to make "what's under this thing?"
+        // visible in the log.
+        public static string DescribeCell(int c)
+        {
+            if (c < 0 || c >= Grid.CellCount) return "<invalid>";
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"cell={c}");
+            sb.Append(" elem=").Append(Grid.Element[c]?.id.ToString() ?? "?");
+            sb.Append(" mass=").Append(Grid.Mass[c].ToString("F2"));
+
+            var conduit = Grid.Objects[c, (int)ObjectLayer.GasConduit];
+            if (conduit != null)
+            {
+                bool isOurs = conduit.GetComponent<EqualizerPipe>() != null;
+                sb.Append($" GasConduit=[{(isOurs ? "Equalizer" : "Stock")}:{conduit.name}]");
+            }
+            var conn = Grid.Objects[c, (int)ObjectLayer.GasConduitConnection];
+            if (conn != null)
+            {
+                bool isOurs = conn.GetComponent<EqualizerBridge>() != null;
+                sb.Append($" GasConduitConnection=[{(isOurs ? "EqualizerBridge" : "Stock")}:{conn.name}]");
+            }
+            var tile = Grid.Objects[c, (int)ObjectLayer.GasConduitTile];
+            if (tile != null) sb.Append($" GasConduitTile=[{tile.name}]");
+
+            var building = Grid.Objects[c, (int)ObjectLayer.Building];
+            if (building != null) sb.Append($" Building=[{building.name}]");
+
+            sb.Append(" isDuctRegistered=").Append(IsRegisteredDuctCell(c));
+            sb.Append(" isBridgeEndpoint=").Append(IsBridgeEndpointRegistered(c));
+            return sb.ToString();
+        }
+
+        // BFS from a starting cell over duct + bridge-endpoint cells, return
+        // how many pipe cells are reachable. Used by the vent's peer-change
+        // diagnostic so a vent that sees zero peers can still report whether
+        // its cell is on a network of any size.
+        public static int CountReachablePipeCellsFromCell(int sourceCell)
+        {
+            var visited = new HashSet<int>();
+            if (DuctCells.Count == 0 && BridgeEndpoints.Count == 0) return 0;
+
+            var queue = new Queue<int>();
+            if (IsPipeCell(sourceCell))
+            {
+                visited.Add(sourceCell);
+                queue.Enqueue(sourceCell);
+            }
+            foreach (int n in NeighborsOf(sourceCell))
+            {
+                if (IsPipeCell(n) && visited.Add(n)) queue.Enqueue(n);
+            }
+
+            while (queue.Count > 0)
+            {
+                int current = queue.Dequeue();
+                foreach (int n in NeighborsOf(current))
+                {
+                    if (IsPipeCell(n) && visited.Add(n)) queue.Enqueue(n);
+                }
+            }
+            return visited.Count;
         }
 
         public static List<GasPressureEqualizerVent> FindConnectedVents(GasPressureEqualizerVent self, int selfCell)
@@ -225,17 +298,25 @@ namespace GasPressureEqualizer
             foreach (int n in NeighborsOf(cell)) yield return n;
         }
 
-        // Returns the BFS neighbors of a cell. For bridge endpoints, only the
-        // outward cell and the tunnel partner are valid; the perpendicular sides
-        // are blocked, which is what keeps two crossing networks from merging
-        // through the bridge cell.
+        // Returns the BFS neighbors of a cell.
+        //
+        // Bridge endpoints always tunnel through to their partner. They also
+        // expose all four cardinal cells, so equalizer ducts attached to any
+        // side of the endpoint join the connected component. Previously we
+        // restricted to outward + partner only, which forced ducts to approach
+        // the bridge along its axis — that broke setups where the bridge
+        // spans an obstacle (e.g. a stock pipe on the bridge axis) and ducts
+        // must come in from a perpendicular side.
+        //
+        // The CanReach gate still prevents two bridge endpoints from
+        // cardinally connecting to each other; that path must go through the
+        // tunnel partner, so two perpendicular or back-to-back bridges with
+        // adjacent endpoints don't accidentally merge their networks.
         private static IEnumerable<int> NeighborsOf(int cell)
         {
             if (BridgeEndpoints.TryGetValue(cell, out BridgeEndpoint ep))
             {
-                yield return ep.OutwardCell;
                 yield return ep.TunnelPartner;
-                yield break;
             }
 
             int up = Grid.CellAbove(cell);
@@ -249,13 +330,11 @@ namespace GasPressureEqualizer
             if (CanReach(cell, right)) yield return right;
         }
 
-        // A cell can reach a neighbor unless that neighbor is a bridge endpoint
-        // approached from a non-outward direction.
         private static bool CanReach(int from, int to)
         {
-            if (BridgeEndpoints.TryGetValue(to, out BridgeEndpoint ep))
+            if (BridgeEndpoints.ContainsKey(from) && BridgeEndpoints.ContainsKey(to))
             {
-                return ep.OutwardCell == from;
+                return false;
             }
             return true;
         }

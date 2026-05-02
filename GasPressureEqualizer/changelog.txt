@@ -1,6 +1,19 @@
 Gas Pressure Equalizer - Changelog
 ===================================
 
+v1.1.4
+------
+- Fix: Equalizer Vents now exchange gas correctly when an Equalizer Bridge
+  is placed over a stock pipe and the duct runs approach the bridge from
+  a perpendicular direction. The bridge's flow-graph BFS previously only
+  allowed ducts to attach along the bridge's axis, which silently broke
+  any setup where the bridge had to span an obstacle on that axis.
+  Two adjacent bridge endpoints still don't merge cardinally — they
+  connect only through their tunnel partners.
+- Added one-shot OnSpawn diagnostic dumps for Equalizer Vents and
+  Equalizer Bridges so future "doesn't work" reports can be diagnosed
+  from the player.log without a code change.
+
 v1.1.3
 ------
 - Animate the Equalizer Vent (was rendering on a static frame).

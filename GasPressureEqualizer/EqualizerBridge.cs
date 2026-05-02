@@ -1,3 +1,4 @@
+using System.Text;
 using UnityEngine;
 
 namespace GasPressureEqualizer
@@ -34,6 +35,20 @@ namespace GasPressureEqualizer
             {
                 anim.TintColour = BASE_TINT;
             }
+
+            // One-shot snapshot of bridge spawn state, including what's at
+            // every relevant cell. Cheap to keep and invaluable when a user
+            // reports a "doesn't work" bug — the bridge cells (especially
+            // when overlapping a stock pipe) are non-trivial to inspect
+            // from in-game.
+            var sb = new StringBuilder();
+            sb.AppendLine($"[GPE-Bridge] OnSpawn origin={origin} input={inputCell} output={outputCell} inputOutward={inputOutward} outputOutward={outputOutward} registered={registered}");
+            sb.AppendLine($"[GPE-Bridge]   origin: {EqualizerNetwork.DescribeCell(origin)}");
+            sb.AppendLine($"[GPE-Bridge]   input:  {EqualizerNetwork.DescribeCell(inputCell)}");
+            sb.AppendLine($"[GPE-Bridge]   output: {EqualizerNetwork.DescribeCell(outputCell)}");
+            sb.AppendLine($"[GPE-Bridge]   inOut:  {EqualizerNetwork.DescribeCell(inputOutward)}");
+            sb.Append    ($"[GPE-Bridge]   outOut: {EqualizerNetwork.DescribeCell(outputOutward)}");
+            Debug.Log(sb.ToString());
         }
 
         protected override void OnCleanUp()
@@ -42,6 +57,7 @@ namespace GasPressureEqualizer
             {
                 EqualizerNetwork.UnregisterBridgeEndpoint(inputCell);
                 EqualizerNetwork.UnregisterBridgeEndpoint(outputCell);
+                registered = false;
             }
             base.OnCleanUp();
         }
